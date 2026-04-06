@@ -58,6 +58,13 @@ function markStep(id, done) {
   document.getElementById(id).className = `step ${done ? "done" : "active"}`;
 }
 
+async function ensureContractDeployed(provider) {
+  const code = await provider.getCode(contractAddress);
+  if (code === "0x") {
+    throw new Error("No contract code found at the fixed address on this network. Switch to Sepolia and retry.");
+  }
+}
+
 function setActiveTab(tab) {
   const borrowerPanel = document.getElementById("borrowerPanel");
   const lenderPanel = document.getElementById("lenderPanel");
@@ -124,6 +131,8 @@ async function connectBorrowerWallet() {
       return;
     }
 
+    await ensureContractDeployed(provider);
+
     borrowerContract = new ethers.Contract(contractAddress, ABI, borrowerSigner);
 
     const short = `${borrowerWalletAddr.slice(0, 6)}...${borrowerWalletAddr.slice(-4)}`;
@@ -155,6 +164,8 @@ async function connectLenderWallet() {
       alert("Switch MetaMask to the Sepolia testnet.");
       return;
     }
+
+    await ensureContractDeployed(provider);
 
     lenderContract = new ethers.Contract(contractAddress, ABI, lenderSigner);
 
@@ -265,13 +276,18 @@ async function checkLenderConsent() {
   const lenderStatus = { barId: "lenderStatusBar", textId: "lenderStatusText" };
   const downloadBtn = document.getElementById("lenderDownloadBtn");
   const details = document.getElementById("lenderConsentData");
+  const boolOutput = document.getElementById("lenderConsentBool");
 
   if (!lenderSigner || !lenderWalletAddr) {
+    boolOutput.textContent = "false";
+    boolOutput.className = "hash-box";
     return setStatus(lenderStatus, "Connect lender wallet first.", "error");
   }
 
   const borrower = document.getElementById("lenderBorrowerAddress").value.trim();
   if (!ethers.isAddress(borrower)) {
+    boolOutput.textContent = "false";
+    boolOutput.className = "hash-box";
     return setStatus(lenderStatus, "Invalid borrower address.", "error");
   }
 
@@ -281,6 +297,9 @@ async function checkLenderConsent() {
 
   try {
     setStatus(lenderStatus, "Checking on-chain consent...", "loading");
+
+    await ensureContractDeployed(lenderSigner.provider);
+
     let hasConsent = false;
 
     // Primary path: use the contract's dedicated validator.
@@ -302,6 +321,8 @@ async function checkLenderConsent() {
 
     if (!hasConsent) {
       lenderProofContext = null;
+      boolOutput.textContent = "false";
+      boolOutput.className = "hash-box";
       details.textContent = "No active consent for this borrower-lender pair. Confirm the lender wallet matches the address used by the borrower during grant.";
       details.className = "hash-box";
       downloadBtn.classList.add("hidden");
@@ -319,6 +340,8 @@ async function checkLenderConsent() {
       checkedAt: new Date().toISOString()
     };
 
+    boolOutput.textContent = "true";
+    boolOutput.className = "hash-box ready";
     details.textContent = `Borrower: ${borrower}\nLender: ${lenderWalletAddr}\nPDF hash: ${pdfHash}`;
     details.className = "hash-box ready";
     downloadBtn.classList.remove("hidden");
@@ -327,6 +350,16 @@ async function checkLenderConsent() {
     setStatus(lenderStatus, "Consent is valid. You can download proof.", "ok");
   } catch (e) {
     console.error(e);
+    boolOutput.textContent = "false";
+    boolOutput.className = "hash-box";
+    if (e.code === "BAD_DATA") {
+      setStatus(
+        lenderStatus,
+        "Contract call returned empty data. Verify MetaMask is on Sepolia and the fixed contract address is deployed there.",
+        "error"
+      );
+      return;
+    }
     setStatus(lenderStatus, e.reason || e.message || "Consent check failed.", "error");
   }
 }
