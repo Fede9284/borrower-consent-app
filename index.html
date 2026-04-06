@@ -29,19 +29,19 @@
     <div class="step-header">
       <span class="step-num">CFG</span>
       <span class="step-title">Contract Address</span>
-      <span class="step-badge badge-idle" id="contractBadge">FIXED</span>
+      <span class="step-badge badge-idle" id="contractBadge">NOT SET</span>
     </div>
  
     <div id="contractNotice" class="notice">
-      <strong>Fixed contract loaded.</strong><br>
-      This app is locked to the deployed Sepolia contract address.
+      <strong>Set contract address.</strong><br>
+      Update the address and click Set Address to apply it for borrower and lender flows.
     </div>
  
     <div class="field">
       <label>Contract Address (0x…)</label>
-      <input type="text" id="contractInput" placeholder="0xYourDeployedContractAddress" readonly />
+      <input type="text" id="contractInput" placeholder="0xYourDeployedContractAddress" />
     </div>
-    <button class="btn btn-ghost hidden" id="setContractBtn">Set Address</button>
+    <button class="btn btn-ghost" id="setContractBtn">Set Address</button>
 
     <div class="section-top">
       <div class="row">

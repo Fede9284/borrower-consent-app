@@ -8,8 +8,8 @@ let lenderContract = null;
 let lenderWalletAddr = null;
 let lenderProofContext = null;
 
-const CONTRACT_ADDRESS = "0xf8e81D47203A594245E36C48e151709F0C19fBe8";
-let contractAddress = CONTRACT_ADDRESS;
+const DEFAULT_CONTRACT_ADDRESS = "0xf8e81D47203A594245E36C48e151709F0C19fBe8";
+let contractAddress = DEFAULT_CONTRACT_ADDRESS;
 
 const ABI = [
   "function grantConsent(address _lender, uint256 _expiry, string memory _pdfHash)",
@@ -109,20 +109,57 @@ function setExpiryToFiveMinutesFromNow() {
   expiryHuman.textContent = new Date(defaultExpiry * 1000).toUTCString();
 }
 
-function syncFixedContract() {
-  document.getElementById("contractInput").value = CONTRACT_ADDRESS;
-  document.getElementById("contractInput").readOnly = true;
-  document.getElementById("setContractBtn").classList.add("hidden");
-  document.getElementById("contractNotice").style.display = "none";
-  badge("contractBadge", "FIXED", "ok");
-  markStep("step0", true);
-
+function applyContractAddressToInstances() {
   if (borrowerSigner) {
     borrowerContract = new ethers.Contract(contractAddress, ABI, borrowerSigner);
   }
   if (lenderSigner) {
     lenderContract = new ethers.Contract(contractAddress, ABI, lenderSigner);
   }
+}
+
+function setContractAddress() {
+  const input = document.getElementById("contractInput");
+  const value = input.value.trim();
+
+  if (!ethers.isAddress(value)) {
+    badge("contractBadge", "INVALID", "warn");
+    markStep("step0", false);
+    document.getElementById("contractNotice").style.display = "block";
+    document.getElementById("contractNotice").innerHTML = "<strong>Invalid address.</strong><br>Enter a valid 0x address and set it again.";
+    return;
+  }
+
+  contractAddress = ethers.getAddress(value);
+  input.value = contractAddress;
+  document.getElementById("contractNotice").style.display = "none";
+  badge("contractBadge", "SET", "ok");
+  markStep("step0", true);
+
+  lenderProofContext = null;
+  document.getElementById("lenderDownloadBtn").classList.add("hidden");
+  document.getElementById("lenderConsentBool").textContent = "false";
+  document.getElementById("lenderConsentBool").className = "hash-box";
+  document.getElementById("lenderConsentData").textContent = "Contract address updated. Re-run consent check.";
+  document.getElementById("lenderConsentData").className = "hash-box";
+
+  applyContractAddressToInstances();
+}
+
+function initializeContractAddressInput() {
+  document.getElementById("contractInput").value = contractAddress;
+
+  if (ethers.isAddress(contractAddress)) {
+    contractAddress = ethers.getAddress(contractAddress);
+    document.getElementById("contractInput").value = contractAddress;
+    badge("contractBadge", "SET", "ok");
+    markStep("step0", true);
+  } else {
+    badge("contractBadge", "NOT SET", "idle");
+    markStep("step0", false);
+  }
+
+  applyContractAddressToInstances();
 }
 
 async function runNetworkContractCheck() {
@@ -454,8 +491,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("checkConsentBtn").addEventListener("click", checkLenderConsent);
   document.getElementById("lenderDownloadBtn").addEventListener("click", downloadLenderConsentProof);
   document.getElementById("contractCheckBtn").addEventListener("click", runNetworkContractCheck);
+  document.getElementById("setContractBtn").addEventListener("click", setContractAddress);
 
-  syncFixedContract();
+  initializeContractAddressInput();
   setExpiryToFiveMinutesFromNow();
   setActiveTab("borrower");
 
