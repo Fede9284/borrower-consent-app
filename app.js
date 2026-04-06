@@ -15,7 +15,8 @@ const ABI = [
   "function grantConsent(address _lender, uint256 _expiry, string memory _pdfHash)",
   "function revokeConsent()",
   "function hasValidConsent(address borrower, address lender) view returns (bool)",
-  "function getPdfHash(address borrower) view returns (string memory)"
+  "function getPdfHash(address borrower) view returns (string memory)",
+  "function consents(address borrower) view returns (bool granted, address lender, uint256 expiry, string pdfHash)"
 ];
 
 function setStatus(target, msg, type = "idle", txHash = null) {
@@ -280,11 +281,28 @@ async function checkLenderConsent() {
 
   try {
     setStatus(lenderStatus, "Checking on-chain consent...", "loading");
-    const hasConsent = await lenderContract.hasValidConsent(borrower, lenderWalletAddr);
+    let hasConsent = false;
+
+    // Primary path: use the contract's dedicated validator.
+    try {
+      hasConsent = await lenderContract.hasValidConsent(borrower, lenderWalletAddr);
+    } catch (_) {
+      hasConsent = false;
+    }
+
+    // Fallback path: read raw consent data and evaluate it client-side.
+    if (!hasConsent) {
+      const consent = await lenderContract.consents(borrower);
+      const now = Math.floor(Date.now() / 1000);
+      hasConsent =
+        consent.granted &&
+        consent.lender.toLowerCase() === lenderWalletAddr.toLowerCase() &&
+        Number(consent.expiry) > now;
+    }
 
     if (!hasConsent) {
       lenderProofContext = null;
-      details.textContent = "No active consent for this borrower-lender pair.";
+      details.textContent = "No active consent for this borrower-lender pair. Confirm the lender wallet matches the address used by the borrower during grant.";
       details.className = "hash-box";
       downloadBtn.classList.add("hidden");
       badge("lenderConsentBadge", "DENIED", "warn");
