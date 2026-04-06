@@ -1,4 +1,5 @@
 let borrowerPdfHash = "";
+let borrowerPdfContentBase64 = "";
 let borrowerSigner = null;
 let borrowerContract = null;
 let borrowerWalletAddr = null;
@@ -10,6 +11,7 @@ let lenderProofContext = null;
 
 const DEFAULT_CONTRACT_ADDRESS = "0xaa717FC983342Ea4bE59075C2E2b383AF6AF6De3";
 let contractAddress = DEFAULT_CONTRACT_ADDRESS;
+const API_BASE_URL = "https://your-api-service.onrender.com";
 
 const ABI = [
   "function grantConsent(address _lender, uint256 _expiry, string memory _pdfHash)",
@@ -273,9 +275,66 @@ async function connectLenderWallet() {
 
 function onFileChange() {
   borrowerPdfHash = "";
+  borrowerPdfContentBase64 = "";
   document.getElementById("hashOutput").textContent = "Click Generate Hash.";
   document.getElementById("hashOutput").className = "hash-box";
   badge("hashBadge", "READY", "idle");
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
+}
+
+async function savePdfRecordToApi() {
+  if (!borrowerPdfHash || !borrowerPdfContentBase64) {
+    return;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/pdf-records`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      pdf_hash: borrowerPdfHash,
+      content_base64: borrowerPdfContentBase64
+    })
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`API save failed: ${response.status} ${message}`);
+  }
+}
+
+async function evaluateConsentViaApi() {
+  if (!lenderProofContext) {
+    throw new Error("Lender proof context not ready");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/evaluate-consent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      borrower: lenderProofContext.borrower,
+      lender: lenderProofContext.lender,
+      contract_address: lenderProofContext.contract
+    })
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`API evaluate failed: ${response.status} ${message}`);
+  }
+
+  return response.json();
 }
 
 async function hashFile() {
@@ -295,6 +354,7 @@ async function hashFile() {
   borrowerPdfHash = Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+  borrowerPdfContentBase64 = arrayBufferToBase64(buf);
 
   box.textContent = borrowerPdfHash;
   box.className = "hash-box ready";
@@ -333,7 +393,20 @@ async function grantConsent() {
     const tx = await borrowerContract.grantConsent(lender, expiry, borrowerPdfHash);
     setStatus(borrowerStatus, "Transaction sent - waiting for confirmation...", "loading", tx.hash);
     await tx.wait();
-    setStatus(borrowerStatus, "Consent granted successfully.", "ok", tx.hash);
+
+    try {
+      await savePdfRecordToApi();
+      setStatus(borrowerStatus, "Consent granted and PDF record sent to hosted API.", "ok", tx.hash);
+    } catch (apiError) {
+      console.error(apiError);
+      setStatus(
+        borrowerStatus,
+        "Consent granted on-chain, but hosted API save failed.",
+        "error",
+        tx.hash
+      );
+    }
+
     badge("consentBadge", "GRANTED", "ok");
     markStep("step3", true);
   } catch (e) {
@@ -452,9 +525,24 @@ async function checkLenderConsent() {
   }
 }
 
-function downloadLenderConsentProof() {
+async function downloadLenderConsentProof() {
   if (!lenderProofContext) {
     return;
+  }
+
+  let apiResultText = "API evaluation unavailable.";
+
+  try {
+    const apiResult = await evaluateConsentViaApi();
+    apiResultText = [
+      `API has_consent: ${apiResult.has_consent}`,
+      `API signature_valid: ${apiResult.signature_valid}`,
+      `API content: ${apiResult.content ?? ""}`,
+      `API content_plus_one: ${apiResult.content_plus_one ?? ""}`
+    ].join("\n");
+  } catch (apiError) {
+    console.error(apiError);
+    apiResultText = `API evaluation error: ${apiError.message}`;
   }
 
   const content = [
@@ -463,7 +551,9 @@ function downloadLenderConsentProof() {
     `Contract: ${lenderProofContext.contract}`,
     `Borrower: ${lenderProofContext.borrower}`,
     `Lender: ${lenderProofContext.lender}`,
-    `PDF hash: ${lenderProofContext.pdfHash}`
+    `PDF hash: ${lenderProofContext.pdfHash}`,
+    "",
+    apiResultText
   ].join("\n");
 
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
