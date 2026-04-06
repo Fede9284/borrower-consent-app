@@ -64,6 +64,26 @@ async function ensureContractDeployed(provider) {
   }
 }
 
+function getWalletConnectErrorMessage(error) {
+  if (!error) {
+    return "Wallet connection failed.";
+  }
+
+  if (error.code === 4001) {
+    return "Wallet connection request was rejected in MetaMask.";
+  }
+
+  if (error.code === -32002) {
+    return "MetaMask already has a pending wallet request. Open MetaMask and complete it.";
+  }
+
+  if (error.code === "ACTION_REJECTED") {
+    return "Wallet action was rejected.";
+  }
+
+  return error.reason || error.shortMessage || error.message || "Wallet connection failed.";
+}
+
 function setActiveTab(tab) {
   const borrowerPanel = document.getElementById("borrowerPanel");
   const lenderPanel = document.getElementById("lenderPanel");
@@ -113,12 +133,15 @@ function syncFixedContract() {
 }
 
 async function connectBorrowerWallet() {
+  const borrowerStatus = { barId: "statusBar", textId: "statusText", linkId: "txLink" };
+
   if (!window.ethereum) {
-    alert("MetaMask not found. Install it from metamask.io");
+    setStatus(borrowerStatus, "MetaMask not found. Install it from metamask.io", "error");
     return;
   }
 
   try {
+    setStatus(borrowerStatus, "Requesting wallet connection...", "loading");
     const provider = new ethers.BrowserProvider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     borrowerSigner = await provider.getSigner();
@@ -126,7 +149,10 @@ async function connectBorrowerWallet() {
 
     const network = await provider.getNetwork();
     if (network.chainId !== 11155111n) {
-      alert("Switch MetaMask to the Sepolia testnet.");
+      borrowerSigner = null;
+      borrowerWalletAddr = null;
+      borrowerContract = null;
+      setStatus(borrowerStatus, "Switch MetaMask to the Sepolia testnet.", "error");
       return;
     }
 
@@ -140,19 +166,23 @@ async function connectBorrowerWallet() {
     document.getElementById("borrowerConnectBtn").classList.add("hidden");
     badge("walletBadge", "CONNECTED", "ok");
     markStep("step1", true);
+    setStatus(borrowerStatus, "Borrower wallet connected.", "ok");
   } catch (e) {
     console.error(e);
-    alert("Wallet connection failed.");
+    setStatus(borrowerStatus, getWalletConnectErrorMessage(e), "error");
   }
 }
 
 async function connectLenderWallet() {
+  const lenderStatus = { barId: "lenderStatusBar", textId: "lenderStatusText" };
+
   if (!window.ethereum) {
-    alert("MetaMask not found. Install it from metamask.io");
+    setStatus(lenderStatus, "MetaMask not found. Install it from metamask.io", "error");
     return;
   }
 
   try {
+    setStatus(lenderStatus, "Requesting wallet connection...", "loading");
     const provider = new ethers.BrowserProvider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     lenderSigner = await provider.getSigner();
@@ -160,7 +190,10 @@ async function connectLenderWallet() {
 
     const network = await provider.getNetwork();
     if (network.chainId !== 11155111n) {
-      alert("Switch MetaMask to the Sepolia testnet.");
+      lenderSigner = null;
+      lenderWalletAddr = null;
+      lenderContract = null;
+      setStatus(lenderStatus, "Switch MetaMask to the Sepolia testnet.", "error");
       return;
     }
 
@@ -174,9 +207,10 @@ async function connectLenderWallet() {
     document.getElementById("lenderConnectBtn").classList.add("hidden");
     badge("lenderWalletBadge", "CONNECTED", "ok");
     markStep("lenderStep1", true);
+    setStatus(lenderStatus, "Lender wallet connected.", "ok");
   } catch (e) {
     console.error(e);
-    alert("Wallet connection failed.");
+    setStatus(lenderStatus, getWalletConnectErrorMessage(e), "error");
   }
 }
 
