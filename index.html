@@ -23,19 +23,19 @@
     <div class="step-header">
       <span class="step-num">CFG</span>
       <span class="step-title">Contract Address</span>
-      <span class="step-badge badge-idle" id="contractBadge">NOT SET</span>
+      <span class="step-badge badge-idle" id="contractBadge">FIXED</span>
     </div>
  
     <div id="contractNotice" class="notice">
-      <strong>Preset contract loaded.</strong><br>
-      This app is preconfigured to use your Sepolia contract address. You can still replace it below.
+      <strong>Fixed contract loaded.</strong><br>
+      This app is locked to the deployed Sepolia contract address.
     </div>
  
     <div class="field">
       <label>Contract Address (0x…)</label>
-      <input type="text" id="contractInput" placeholder="0xYourDeployedContractAddress" />
+      <input type="text" id="contractInput" placeholder="0xYourDeployedContractAddress" readonly />
     </div>
-    <button class="btn btn-ghost" id="setContractBtn">Set Address</button>
+    <button class="btn btn-ghost hidden" id="setContractBtn">Set Address</button>
   </div>
  
   <!-- ── Step 1: Connect Wallet ── -->

@@ -3,8 +3,8 @@ let signer = null;
 let contract = null;
 let walletAddr = null;
 
-const DEPLOYED_CONTRACT_ADDRESS = "0xf8e81D47203A594245E36C48e151709F0C19fBe8";
-let contractAddress = DEPLOYED_CONTRACT_ADDRESS;
+const CONTRACT_ADDRESS = "0xf8e81D47203A594245E36C48e151709F0C19fBe8";
+let contractAddress = CONTRACT_ADDRESS;
 
 const ABI = [
   "function grantConsent(address _lender, uint256 _expiry, string memory _pdfHash)",
@@ -50,23 +50,18 @@ function markStep(id, done) {
 function setExpiryToOneMinuteFromNow() {
   const expiryInput = document.getElementById("expiryInput");
   const expiryHuman = document.getElementById("expiryHuman");
-  const defaultExpiry = Math.floor(Date.now() / 1000) + 60;
+  const defaultExpiry = Math.floor(Date.now() / 1000) + 300;
 
   expiryInput.value = String(defaultExpiry);
   expiryHuman.textContent = new Date(defaultExpiry * 1000).toUTCString();
 }
 
-function setContract(valFromCode = null) {
-  const val = (valFromCode ?? document.getElementById("contractInput").value).trim();
-  if (!ethers.isAddress(val)) {
-    alert("Invalid Ethereum address.");
-    return;
-  }
-
-  contractAddress = val;
-  document.getElementById("contractInput").value = contractAddress;
+function syncFixedContract() {
+  document.getElementById("contractInput").value = CONTRACT_ADDRESS;
+  document.getElementById("contractInput").readOnly = true;
+  document.getElementById("setContractBtn").classList.add("hidden");
   document.getElementById("contractNotice").style.display = "none";
-  badge("contractBadge", "SET", "ok");
+  badge("contractBadge", "FIXED", "ok");
   markStep("step0", true);
 
   if (signer) {
@@ -199,15 +194,13 @@ async function revokeConsent() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("setContractBtn").addEventListener("click", () => setContract());
   document.getElementById("connectBtn").addEventListener("click", connectWallet);
   document.getElementById("pdfFile").addEventListener("change", onFileChange);
   document.getElementById("hashBtn").addEventListener("click", hashFile);
   document.getElementById("grantBtn").addEventListener("click", grantConsent);
   document.getElementById("revokeBtn").addEventListener("click", revokeConsent);
 
-  document.getElementById("contractInput").value = DEPLOYED_CONTRACT_ADDRESS;
-  setContract(DEPLOYED_CONTRACT_ADDRESS);
+  syncFixedContract();
   setExpiryToOneMinuteFromNow();
 
   document.getElementById("expiryInput").addEventListener("input", (e) => {
