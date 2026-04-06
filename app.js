@@ -344,13 +344,33 @@ async function checkLenderConsent() {
     return setStatus(lenderStatus, "Invalid borrower address.", "error");
   }
 
-  if (!lenderContract) {
-    lenderContract = new ethers.Contract(contractAddress, ABI, lenderSigner);
-  }
-
   try {
     setStatus(lenderStatus, "Checking on-chain consent...", "loading");
-    const hasConsent = await lenderContract.hasValidConsent(borrower, lenderWalletAddr);
+
+    // Use a fresh provider each check so network/account changes in MetaMask are reflected.
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const network = await provider.getNetwork();
+    if (network.chainId !== 11155111n) {
+      boolOutput.textContent = "false";
+      boolOutput.className = "hash-box";
+      downloadBtn.classList.add("hidden");
+      details.className = "hash-box";
+      details.textContent = "Switch MetaMask to Sepolia before checking consent.";
+      return setStatus(lenderStatus, "Wrong network. Use Sepolia.", "error");
+    }
+
+    const code = await provider.getCode(contractAddress);
+    if (code === "0x") {
+      boolOutput.textContent = "false";
+      boolOutput.className = "hash-box";
+      downloadBtn.classList.add("hidden");
+      details.className = "hash-box";
+      details.textContent = "No contract bytecode found at the fixed address on current network.";
+      return setStatus(lenderStatus, "Contract not found at fixed address.", "error");
+    }
+
+    const readContract = new ethers.Contract(contractAddress, ABI, provider);
+    const hasConsent = await readContract.hasValidConsent(borrower, lenderWalletAddr);
 
     if (!hasConsent) {
       lenderProofContext = null;
@@ -364,7 +384,7 @@ async function checkLenderConsent() {
       return setStatus(lenderStatus, "Consent is not active.", "error");
     }
 
-    const pdfHash = await lenderContract.getPdfHash(borrower);
+    const pdfHash = await readContract.getPdfHash(borrower);
     lenderProofContext = {
       borrower,
       lender: lenderWalletAddr,
@@ -385,6 +405,12 @@ async function checkLenderConsent() {
     console.error(e);
     boolOutput.textContent = "false";
     boolOutput.className = "hash-box";
+    if (e.code === "BAD_DATA") {
+      details.className = "hash-box";
+      details.textContent = "Call returned empty data. Run Network + Contract Check to verify chain and deployment.";
+      downloadBtn.classList.add("hidden");
+      return setStatus(lenderStatus, "Unable to decode call data on current network/address.", "error");
+    }
     setStatus(lenderStatus, e.reason || e.message || "Consent check failed.", "error");
   }
 }
