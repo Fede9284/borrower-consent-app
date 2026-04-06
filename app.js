@@ -47,6 +47,15 @@ function markStep(id, done) {
   document.getElementById(id).className = `step ${done ? "done" : "active"}`;
 }
 
+function setExpiryToOneMinuteFromNow() {
+  const expiryInput = document.getElementById("expiryInput");
+  const expiryHuman = document.getElementById("expiryHuman");
+  const defaultExpiry = Math.floor(Date.now() / 1000) + 60;
+
+  expiryInput.value = String(defaultExpiry);
+  expiryHuman.textContent = new Date(defaultExpiry * 1000).toUTCString();
+}
+
 function setContract(valFromCode = null) {
   const val = (valFromCode ?? document.getElementById("contractInput").value).trim();
   if (!ethers.isAddress(val)) {
@@ -199,6 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("contractInput").value = DEPLOYED_CONTRACT_ADDRESS;
   setContract(DEPLOYED_CONTRACT_ADDRESS);
+  setExpiryToOneMinuteFromNow();
 
   document.getElementById("expiryInput").addEventListener("input", (e) => {
     const ts = parseInt(e.target.value, 10);
