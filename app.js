@@ -8,7 +8,7 @@ let lenderContract = null;
 let lenderWalletAddr = null;
 let lenderProofContext = null;
 
-const DEFAULT_CONTRACT_ADDRESS = "0xf8e81D47203A594245E36C48e151709F0C19fBe8";
+const DEFAULT_CONTRACT_ADDRESS = "0xaa717FC983342Ea4bE59075C2E2b383AF6AF6De3";
 let contractAddress = DEFAULT_CONTRACT_ADDRESS;
 
 const ABI = [
