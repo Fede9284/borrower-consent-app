@@ -57,13 +57,6 @@ function markStep(id, done) {
   document.getElementById(id).className = `step ${done ? "done" : "active"}`;
 }
 
-async function ensureContractDeployed(provider) {
-  const code = await provider.getCode(contractAddress);
-  if (code === "0x") {
-    throw new Error("No contract code found at the fixed address on this network. Switch to Sepolia and retry.");
-  }
-}
-
 function getWalletConnectErrorMessage(error) {
   if (!error) {
     return "Wallet connection failed.";
@@ -156,8 +149,6 @@ async function connectBorrowerWallet() {
       return;
     }
 
-    await ensureContractDeployed(provider);
-
     borrowerContract = new ethers.Contract(contractAddress, ABI, borrowerSigner);
 
     const short = `${borrowerWalletAddr.slice(0, 6)}...${borrowerWalletAddr.slice(-4)}`;
@@ -196,8 +187,6 @@ async function connectLenderWallet() {
       setStatus(lenderStatus, "Switch MetaMask to the Sepolia testnet.", "error");
       return;
     }
-
-    await ensureContractDeployed(provider);
 
     lenderContract = new ethers.Contract(contractAddress, ABI, lenderSigner);
 
@@ -330,8 +319,6 @@ async function checkLenderConsent() {
 
   try {
     setStatus(lenderStatus, "Checking on-chain consent...", "loading");
-
-    await ensureContractDeployed(lenderSigner.provider);
     const hasConsent = await lenderContract.hasValidConsent(borrower, lenderWalletAddr);
 
     if (!hasConsent) {
@@ -367,14 +354,6 @@ async function checkLenderConsent() {
     console.error(e);
     boolOutput.textContent = "false";
     boolOutput.className = "hash-box";
-    if (e.code === "BAD_DATA") {
-      setStatus(
-        lenderStatus,
-        "Contract call returned empty data. Verify MetaMask is on Sepolia and the fixed contract address is deployed there.",
-        "error"
-      );
-      return;
-    }
     setStatus(lenderStatus, e.reason || e.message || "Consent check failed.", "error");
   }
 }
