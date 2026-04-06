@@ -42,6 +42,16 @@
       <input type="text" id="contractInput" placeholder="0xYourDeployedContractAddress" readonly />
     </div>
     <button class="btn btn-ghost hidden" id="setContractBtn">Set Address</button>
+
+    <div class="section-top">
+      <div class="row">
+        <button class="btn btn-ghost" id="contractCheckBtn">Network + Contract Check</button>
+      </div>
+      <div class="section-top">
+        <label>Diagnostic Result</label>
+        <div class="hash-box" id="contractCheckResult">Run check to verify Sepolia network and deployed bytecode.</div>
+      </div>
+    </div>
   </div>
  
   <!-- ── Step 1: Connect Wallet ── -->

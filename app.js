@@ -125,6 +125,37 @@ function syncFixedContract() {
   }
 }
 
+async function runNetworkContractCheck() {
+  const result = document.getElementById("contractCheckResult");
+
+  if (!window.ethereum) {
+    result.textContent = "MetaMask not found. Install it from metamask.io";
+    result.className = "hash-box";
+    return;
+  }
+
+  try {
+    result.textContent = "Running diagnostics...";
+    result.className = "hash-box";
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const network = await provider.getNetwork();
+    const chainId = network.chainId.toString();
+    const code = await provider.getCode(contractAddress);
+    const hasCode = code !== "0x";
+
+    const networkLine = chainId === "11155111" ? "Network: Sepolia (11155111)" : `Network: chainId ${chainId} (not Sepolia)`;
+    const codeLine = hasCode ? "Contract bytecode: found at fixed address" : "Contract bytecode: NOT found (0x)";
+
+    result.textContent = `${networkLine}\n${codeLine}\nAddress: ${contractAddress}`;
+    result.className = hasCode && chainId === "11155111" ? "hash-box ready" : "hash-box";
+  } catch (e) {
+    console.error(e);
+    result.textContent = e.reason || e.shortMessage || e.message || "Diagnostic check failed.";
+    result.className = "hash-box";
+  }
+}
+
 async function connectBorrowerWallet() {
   const borrowerStatus = { barId: "statusBar", textId: "statusText", linkId: "txLink" };
 
@@ -396,6 +427,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("lenderConnectBtn").addEventListener("click", connectLenderWallet);
   document.getElementById("checkConsentBtn").addEventListener("click", checkLenderConsent);
   document.getElementById("lenderDownloadBtn").addEventListener("click", downloadLenderConsentProof);
+  document.getElementById("contractCheckBtn").addEventListener("click", runNetworkContractCheck);
 
   syncFixedContract();
   setExpiryToFiveMinutesFromNow();
