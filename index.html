@@ -10,14 +10,20 @@
 </head>
 <body>
 <div class="shell">
- 
+
   <!-- Header -->
   <div class="header">
     <div class="header-label">Sepolia Testnet</div>
     <h1>Borrower Consent App</h1>
-    <p>Hash a PDF statement on-chain and grant time-limited consent to a lender wallet.</p>
+    <p>Use Borrower and Lender workflows against the fixed contract deployment.</p>
   </div>
- 
+
+  <div class="tab-switcher" role="tablist" aria-label="App mode switcher">
+    <button id="tabBorrower" class="tab-btn active" role="tab" aria-selected="true">Borrower</button>
+    <button id="tabLender" class="tab-btn" role="tab" aria-selected="false">Lender</button>
+  </div>
+
+  <div id="borrowerPanel" class="tab-panel">
   <!-- ── Step 0: Contract address ── -->
   <div class="step" id="step0">
     <div class="step-header">
@@ -46,11 +52,11 @@
       <span class="step-badge badge-idle" id="walletBadge">DISCONNECTED</span>
     </div>
     <div class="row">
-      <button class="btn btn-primary" id="connectBtn">Connect MetaMask</button>
-      <span id="walletChip" class="hidden"></span>
+      <button class="btn btn-primary" id="borrowerConnectBtn">Connect MetaMask</button>
+      <span id="borrowerWalletChip" class="hidden"></span>
     </div>
   </div>
- 
+
   <!-- ── Step 2: Hash PDF ── -->
   <div class="step" id="step2">
     <div class="step-header">
@@ -99,6 +105,49 @@
       <span id="statusText">Waiting for input…</span>
     </div>
     <a id="txLink" class="tx-link hidden" target="_blank"></a>
+  </div>
+  </div>
+
+  <div id="lenderPanel" class="tab-panel hidden">
+    <div class="step" id="lenderStep1">
+      <div class="step-header">
+        <span class="step-num">L1</span>
+        <span class="step-title">Connect Lender Wallet</span>
+        <span class="step-badge badge-idle" id="lenderWalletBadge">DISCONNECTED</span>
+      </div>
+      <div class="row">
+        <button class="btn btn-primary" id="lenderConnectBtn">Connect MetaMask</button>
+        <span id="lenderWalletChip" class="hidden"></span>
+      </div>
+    </div>
+
+    <div class="step" id="lenderStep2">
+      <div class="step-header">
+        <span class="step-num">L2</span>
+        <span class="step-title">Verify Borrower Consent</span>
+        <span class="step-badge badge-idle" id="lenderConsentBadge">PENDING</span>
+      </div>
+
+      <div class="field">
+        <label>Borrower Wallet Address</label>
+        <input type="text" id="lenderBorrowerAddress" placeholder="0x…" />
+      </div>
+
+      <div class="row">
+        <button class="btn btn-ghost" id="checkConsentBtn">Check Consent</button>
+        <button class="btn btn-primary hidden" id="lenderDownloadBtn">Download Consent Proof</button>
+      </div>
+
+      <div class="section-top">
+        <label>Consent Details</label>
+        <div class="hash-box" id="lenderConsentData">Run a check to view borrower consent details.</div>
+      </div>
+
+      <div class="status-bar idle" id="lenderStatusBar">
+        <span class="dot">·</span>
+        <span id="lenderStatusText">Waiting for lender input…</span>
+      </div>
+    </div>
   </div>
  
 </div>

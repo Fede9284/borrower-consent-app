@@ -80,6 +80,53 @@ body::before {
   max-width: 480px;
 }
 
+.tab-switcher {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.tab-btn {
+  background: #161a1c;
+  border: 1px solid var(--border);
+  color: var(--text-mid);
+  border-radius: 4px;
+  padding: 11px 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab-btn:hover {
+  border-color: var(--border-active);
+  color: var(--text);
+}
+
+.tab-btn.active {
+  border-color: rgba(0, 229, 160, 0.35);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.tab-panel {
+  animation: panelIn 0.2s ease;
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .step {
   background: var(--surface);
   border: 1px solid var(--border);
