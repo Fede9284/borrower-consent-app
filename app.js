@@ -15,8 +15,7 @@ const ABI = [
   "function grantConsent(address _lender, uint256 _expiry, string memory _pdfHash)",
   "function revokeConsent()",
   "function hasValidConsent(address borrower, address lender) view returns (bool)",
-  "function getPdfHash(address borrower) view returns (string memory)",
-  "function consents(address borrower) view returns (bool granted, address lender, uint256 expiry, string pdfHash)"
+  "function getPdfHash(address borrower) view returns (string memory)"
 ];
 
 function setStatus(target, msg, type = "idle", txHash = null) {
@@ -299,25 +298,7 @@ async function checkLenderConsent() {
     setStatus(lenderStatus, "Checking on-chain consent...", "loading");
 
     await ensureContractDeployed(lenderSigner.provider);
-
-    let hasConsent = false;
-
-    // Primary path: use the contract's dedicated validator.
-    try {
-      hasConsent = await lenderContract.hasValidConsent(borrower, lenderWalletAddr);
-    } catch (_) {
-      hasConsent = false;
-    }
-
-    // Fallback path: read raw consent data and evaluate it client-side.
-    if (!hasConsent) {
-      const consent = await lenderContract.consents(borrower);
-      const now = Math.floor(Date.now() / 1000);
-      hasConsent =
-        consent.granted &&
-        consent.lender.toLowerCase() === lenderWalletAddr.toLowerCase() &&
-        Number(consent.expiry) > now;
-    }
+    const hasConsent = await lenderContract.hasValidConsent(borrower, lenderWalletAddr);
 
     if (!hasConsent) {
       lenderProofContext = null;
