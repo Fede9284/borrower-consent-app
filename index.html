@@ -5,612 +5,233 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Borrower Consent App</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #0d0f10;
-      --surface: #141618;
-      --border: #252a2d;
-      --border-active: #3a4144;
-      --accent: #00e5a0;
-      --accent-dim: rgba(0,229,160,0.12);
-      --accent-glow: rgba(0,229,160,0.25);
-      --warn: #ff6b35;
-      --warn-dim: rgba(255,107,53,0.12);
-      --text: #e8eaeb;
-      --text-muted: #5a6368;
-      --text-mid: #8a9399;
-      --mono: 'IBM Plex Mono', monospace;
-      --sans: 'IBM Plex Sans', sans-serif;
-    }
- 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
- 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      font-weight: 300;
-      min-height: 100vh;
-      padding: 48px 24px;
-      line-height: 1.6;
-    }
- 
-    /* subtle grid background */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(var(--border) 1px, transparent 1px),
-        linear-gradient(90deg, var(--border) 1px, transparent 1px);
-      background-size: 40px 40px;
-      opacity: 0.3;
-      pointer-events: none;
-      z-index: 0;
-    }
- 
-    .shell {
-      position: relative;
-      z-index: 1;
-      max-width: 680px;
-      margin: 0 auto;
-    }
- 
-    /* ── Header ── */
-    .header {
-      margin-bottom: 48px;
-    }
-    .header-label {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.18em;
-      color: var(--accent);
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-    .header h1 {
-      font-family: var(--mono);
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--text);
-      letter-spacing: -0.02em;
-    }
-    .header p {
-      margin-top: 8px;
-      font-size: 14px;
-      color: var(--text-mid);
-      max-width: 480px;
-    }
- 
-    /* ── Cards / Steps ── */
-    .step {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 28px;
-      margin-bottom: 16px;
-      transition: border-color 0.2s;
-    }
-    .step.active { border-color: var(--border-active); }
-    .step.done   { border-color: rgba(0,229,160,0.3); }
- 
-    .step-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .step-num {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      border: 1px solid var(--border);
-      border-radius: 2px;
-      padding: 2px 7px;
-      letter-spacing: 0.05em;
-    }
-    .step.done .step-num {
-      background: var(--accent-dim);
-      border-color: rgba(0,229,160,0.3);
-      color: var(--accent);
-    }
-    .step-title {
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-    }
-    .step-badge {
-      margin-left: auto;
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      padding: 3px 8px;
-      border-radius: 2px;
-      text-transform: uppercase;
-    }
-    .badge-ok   { background: var(--accent-dim); color: var(--accent); }
-    .badge-warn { background: var(--warn-dim);   color: var(--warn);   }
-    .badge-idle { background: #1e2224;            color: var(--text-muted); }
- 
-    /* ── Form elements ── */
-    label {
-      display: block;
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
- 
-    input[type="text"], input[type="file"] {
-      width: 100%;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 13px;
-      padding: 10px 14px;
-      transition: border-color 0.15s;
-      outline: none;
-    }
-    input[type="text"]:focus,
-    input[type="file"]:focus {
-      border-color: var(--accent);
-    }
-    input[type="file"] {
-      cursor: pointer;
-      padding: 8px 10px;
-    }
-    input[type="file"]::file-selector-button {
-      background: #1e2224;
-      border: 1px solid var(--border);
-      border-radius: 2px;
-      color: var(--text-mid);
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      padding: 4px 12px;
-      cursor: pointer;
-      margin-right: 12px;
-      transition: border-color 0.15s, color 0.15s;
-    }
-    input[type="file"]::file-selector-button:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
- 
-    .field { margin-bottom: 16px; }
- 
-    /* ── Buttons ── */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 10px 20px;
-      border-radius: 3px;
-      border: none;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-primary {
-      background: var(--accent);
-      color: #0a0f0d;
-    }
-    .btn-primary:hover { filter: brightness(1.12); box-shadow: 0 0 18px var(--accent-glow); }
-    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; filter: none; box-shadow: none; }
- 
-    .btn-ghost {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-mid);
-    }
-    .btn-ghost:hover { border-color: var(--border-active); color: var(--text); }
- 
-    .btn-danger {
-      background: transparent;
-      border: 1px solid rgba(255,107,53,0.4);
-      color: var(--warn);
-    }
-    .btn-danger:hover { background: var(--warn-dim); }
- 
-    /* ── Hash display ── */
-    .hash-box {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      padding: 12px 14px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-mid);
-      word-break: break-all;
-      line-height: 1.7;
-      min-height: 44px;
-      position: relative;
-    }
-    .hash-box.ready { color: var(--accent); border-color: rgba(0,229,160,0.25); }
- 
-    /* ── Wallet chip ── */
-    .wallet-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--accent-dim);
-      border: 1px solid rgba(0,229,160,0.25);
-      border-radius: 2px;
-      padding: 6px 12px;
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--accent);
-    }
-    .wallet-chip::before {
-      content: '';
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 6px var(--accent);
-    }
- 
-    /* ── Status bar ── */
-    .status-bar {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 12px 14px;
-      border-radius: 3px;
-      font-family: var(--mono);
-      font-size: 12px;
-      margin-top: 16px;
-      line-height: 1.5;
-    }
-    .status-bar.idle    { background: #161a1c; border: 1px solid var(--border); color: var(--text-muted); }
-    .status-bar.ok      { background: var(--accent-dim); border: 1px solid rgba(0,229,160,0.25); color: var(--accent); }
-    .status-bar.error   { background: var(--warn-dim); border: 1px solid rgba(255,107,53,0.3); color: var(--warn); }
-    .status-bar.loading { background: #161a1c; border: 1px solid var(--border); color: var(--text-mid); }
- 
-    .dot { font-size: 16px; line-height: 1; margin-top: 1px; }
- 
-    /* ── Contract address notice ── */
-    .notice {
-      background: rgba(255,107,53,0.07);
-      border: 1px solid rgba(255,107,53,0.25);
-      border-radius: 3px;
-      padding: 14px 16px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--warn);
-      line-height: 1.7;
-      margin-bottom: 16px;
-    }
-    .notice strong { font-weight: 600; }
- 
-    /* ── Tx link ── */
-    .tx-link {
-      display: inline-block;
-      margin-top: 6px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--accent);
-      text-decoration: none;
-      border-bottom: 1px dashed rgba(0,229,160,0.4);
-    }
-    .tx-link:hover { border-bottom-style: solid; }
- 
-    /* ── Row layout ── */
-    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
- 
-    /* ── Separator ── */
-    .sep {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 20px 0;
-    }
- 
-    /* ── Spinner ── */
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner {
-      width: 12px; height: 12px;
-      border: 2px solid rgba(0,229,160,0.2);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      flex-shrink: 0;
-    }
-  </style>
 </head>
 <body>
-<div class="shell">
- 
-  <!-- Header -->
-  <div class="header">
-    <div class="header-label">Sepolia Testnet</div>
-    <h1>Borrower Consent App</h1>
-    <p>Hash a PDF statement on-chain and grant time-limited consent to a lender wallet.</p>
-  </div>
- 
-  <!-- ── Step 0: Contract address ── -->
-  <div class="step" id="step0">
-    <div class="step-header">
-      <span class="step-num">CFG</span>
-      <span class="step-title">Contract Address</span>
-      <span class="step-badge badge-idle" id="contractBadge">NOT SET</span>
-    </div>
- 
-    <div id="contractNotice" class="notice">
-      <strong>⚠ No contract deployed yet.</strong><br>
-      Deploy <code>PDFRegistry.sol</code> to Sepolia using Hardhat or Remix,
-      then paste the <code>0x…</code> address below.
-    </div>
- 
-    <div class="field">
-      <label>Contract Address (0x…)</label>
-      <input type="text" id="contractInput" placeholder="0xYourDeployedContractAddress" />
-    </div>
-    <button class="btn btn-ghost" onclick="setContract()">Set Address</button>
-  </div>
- 
-  <!-- ── Step 1: Connect Wallet ── -->
-  <div class="step" id="step1">
-    <div class="step-header">
-      <span class="step-num">01</span>
-      <span class="step-title">Connect Wallet</span>
-      <span class="step-badge badge-idle" id="walletBadge">DISCONNECTED</span>
-    </div>
-    <div class="row">
-      <button class="btn btn-primary" id="connectBtn" onclick="connectWallet()">Connect MetaMask</button>
-      <span id="walletChip" style="display:none"></span>
-    </div>
-  </div>
- 
-  <!-- ── Step 2: Hash PDF ── -->
-  <div class="step" id="step2">
-    <div class="step-header">
-      <span class="step-num">02</span>
-      <span class="step-title">Hash PDF Statement</span>
-      <span class="step-badge badge-idle" id="hashBadge">NO FILE</span>
-    </div>
-    <div class="field">
-      <label>Monthly Statement PDF</label>
-      <input type="file" id="pdfFile" accept="application/pdf" onchange="onFileChange()" />
-    </div>
-    <div class="row" style="margin-top:4px">
-      <button class="btn btn-ghost" id="hashBtn" onclick="hashFile()">Generate Hash</button>
-    </div>
-    <div style="margin-top:16px">
-      <label>SHA-256 Hash</label>
-      <div class="hash-box" id="hashOutput">Upload a PDF and click Generate Hash.</div>
-    </div>
-  </div>
- 
-  <!-- ── Step 3: Grant Consent ── -->
-  <div class="step" id="step3">
-    <div class="step-header">
-      <span class="step-num">03</span>
-      <span class="step-title">Grant Consent On-Chain</span>
-      <span class="step-badge badge-idle" id="consentBadge">PENDING</span>
-    </div>
- 
-    <div class="field">
-      <label>Lender Wallet Address</label>
-      <input type="text" id="lenderAddress" placeholder="0x…" />
-    </div>
-    <div class="field">
-      <label>Consent Expiry (Unix timestamp)</label>
-      <input type="text" id="expiryInput" placeholder="e.g. 1767225600" />
-      <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);margin-top:6px" id="expiryHuman"></div>
-    </div>
- 
-    <div class="row">
-      <button class="btn btn-primary" id="grantBtn" onclick="grantConsent()">Grant Consent</button>
-      <button class="btn btn-danger" id="revokeBtn" onclick="revokeConsent()">Revoke</button>
-    </div>
- 
-    <div class="status-bar idle" id="statusBar">
-      <span class="dot">·</span>
-      <span id="statusText">Waiting for input…</span>
-    </div>
-    <a id="txLink" class="tx-link" target="_blank" style="display:none"></a>
-  </div>
- 
-</div>
- 
-<script>
-  // ── State ─────────────────────────────────────────────────
-  let pdfHash     = "";
-  let signer      = null;
-  let contract    = null;
-  let walletAddr  = null;
-  let contractAddress = "";
- 
-  const ABI = [
-    "function grantConsent(address _lender, uint256 _expiry, string memory _pdfHash)",
-    "function revokeConsent()",
-    "function hasValidConsent(address _borrower, address _lender) view returns (bool)"
-  ];
- 
-  // ── Helpers ───────────────────────────────────────────────
-  function setStatus(msg, type = "idle", txHash = null) {
-    const bar  = document.getElementById("statusBar");
-    const text = document.getElementById("statusText");
-    const link = document.getElementById("txLink");
-    bar.className = `status-bar ${type}`;
- 
-    const icons = { idle:"·", ok:"✓", error:"✕", loading:"" };
-    const dot = bar.querySelector(".dot");
- 
-    if (type === "loading") {
-      dot.innerHTML = '<span class="spinner"></span>';
-    } else {
-      dot.innerHTML = icons[type] || "·";
+  <h1>Borrower Consent App</h1>
+  <p>Sepolia Testnet</p>
+  <p>Hash a PDF statement on-chain and grant time-limited consent to a lender wallet.</p>
+
+  <h2>Step 0: Contract Address</h2>
+  <p id="contractNotice">
+    No contract deployed yet. Deploy PDFRegistry.sol to Sepolia using Hardhat or Remix,
+    then paste the 0x... address below.
+  </p>
+  <p>
+    <label for="contractInput">Contract Address (0x...)</label><br />
+    <input type="text" id="contractInput" placeholder="0xYourDeployedContractAddress" />
+  </p>
+  <p>
+    <button id="setContractBtn" onclick="setContract()">Set Address</button>
+    <span id="contractBadge">NOT SET</span>
+  </p>
+
+  <h2>Step 1: Connect Wallet</h2>
+  <p>
+    <button id="connectBtn" onclick="connectWallet()">Connect MetaMask</button>
+    <span id="walletChip"></span>
+  </p>
+  <p>Wallet status: <span id="walletBadge">DISCONNECTED</span></p>
+
+  <h2>Step 2: Hash PDF Statement</h2>
+  <p>
+    <label for="pdfFile">Monthly Statement PDF</label><br />
+    <input type="file" id="pdfFile" accept="application/pdf" onchange="onFileChange()" />
+  </p>
+  <p>
+    <button id="hashBtn" onclick="hashFile()">Generate Hash</button>
+  </p>
+  <p>Hash status: <span id="hashBadge">NO FILE</span></p>
+  <p>
+    <label for="hashOutput">SHA-256 Hash</label><br />
+    <pre id="hashOutput">Upload a PDF and click Generate Hash.</pre>
+  </p>
+
+  <h2>Step 3: Grant Consent On-Chain</h2>
+  <p>Consent status: <span id="consentBadge">PENDING</span></p>
+  <p>
+    <label for="lenderAddress">Lender Wallet Address</label><br />
+    <input type="text" id="lenderAddress" placeholder="0x..." />
+  </p>
+  <p>
+    <label for="expiryInput">Consent Expiry (Unix timestamp)</label><br />
+    <input type="text" id="expiryInput" placeholder="e.g. 1767225600" />
+  </p>
+  <p id="expiryHuman"></p>
+  <p>
+    <button id="grantBtn" onclick="grantConsent()">Grant Consent</button>
+    <button id="revokeBtn" onclick="revokeConsent()">Revoke</button>
+  </p>
+  <p id="statusText">Waiting for input...</p>
+  <p><a id="txLink" target="_blank" style="display:none"></a></p>
+
+  <script>
+    let pdfHash = "";
+    let signer = null;
+    let contract = null;
+    let walletAddr = null;
+    let contractAddress = "";
+
+    const ABI = [
+      "function grantConsent(address _lender, uint256 _expiry, string memory _pdfHash)",
+      "function revokeConsent()",
+      "function hasValidConsent(address _borrower, address _lender) view returns (bool)"
+    ];
+
+    function setStatus(msg, type = "idle", txHash = null) {
+      const text = document.getElementById("statusText");
+      const link = document.getElementById("txLink");
+      text.textContent = `[${type.toUpperCase()}] ${msg}`;
+
+      if (txHash) {
+        link.href = `https://sepolia.etherscan.io/tx/${txHash}`;
+        link.textContent = `View on Etherscan -> ${txHash}`;
+        link.style.display = "inline";
+      } else {
+        link.style.display = "none";
+      }
     }
-    text.textContent = msg;
- 
-    if (txHash) {
-      link.href = `https://sepolia.etherscan.io/tx/${txHash}`;
-      link.textContent = `View on Etherscan → ${txHash.slice(0,18)}…`;
-      link.style.display = "block";
-    } else {
-      link.style.display = "none";
+
+    function badge(id, text, type) {
+      const el = document.getElementById(id);
+      el.textContent = text;
     }
-  }
- 
-  function badge(id, text, type) {
-    const el = document.getElementById(id);
-    el.textContent = text;
-    el.className = `step-badge badge-${type}`;
-  }
- 
-  function markStep(id, done) {
-    document.getElementById(id).className = `step ${done ? "done" : "active"}`;
-  }
- 
-  // ── Step 0: Set contract address ──────────────────────────
-  function setContract() {
-    const val = document.getElementById("contractInput").value.trim();
-    if (!ethers.isAddress(val)) {
-      alert("Invalid Ethereum address.");
-      return;
+
+    function markStep(id, done) {
+      // No-op: step styling removed for plain HTML view.
     }
-    contractAddress = val;
-    document.getElementById("contractNotice").style.display = "none";
-    badge("contractBadge", "SET", "ok");
-    markStep("step0", true);
- 
-    // Re-init contract if wallet already connected
-    if (signer) {
-      contract = new ethers.Contract(contractAddress, ABI, signer);
-    }
-  }
- 
-  // ── Step 1: Connect wallet ────────────────────────────────
-  async function connectWallet() {
-    if (!window.ethereum) {
-      alert("MetaMask not found. Install it from metamask.io");
-      return;
-    }
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      signer     = await provider.getSigner();
-      walletAddr = await signer.getAddress();
- 
-      // Warn if not on Sepolia (chainId 11155111)
-      const network = await provider.getNetwork();
-      if (network.chainId !== 11155111n) {
-        alert("⚠ Switch MetaMask to the Sepolia testnet.");
+
+    function setContract() {
+      const val = document.getElementById("contractInput").value.trim();
+      if (!ethers.isAddress(val)) {
+        alert("Invalid Ethereum address.");
         return;
       }
- 
-      if (contractAddress) {
+      contractAddress = val;
+      document.getElementById("contractNotice").style.display = "none";
+      badge("contractBadge", "SET", "ok");
+      markStep("step0", true);
+
+      if (signer) {
         contract = new ethers.Contract(contractAddress, ABI, signer);
       }
- 
-      const short = `${walletAddr.slice(0,6)}…${walletAddr.slice(-4)}`;
-      document.getElementById("walletChip").innerHTML =
-        `<span class="wallet-chip">${short}</span>`;
-      document.getElementById("walletChip").style.display = "inline-flex";
-      document.getElementById("connectBtn").style.display = "none";
-      badge("walletBadge", "CONNECTED", "ok");
-      markStep("step1", true);
-    } catch (e) {
-      console.error(e);
-      alert("Wallet connection failed.");
     }
-  }
- 
-  // ── Step 2: Hash file ─────────────────────────────────────
-  function onFileChange() {
-    pdfHash = "";
-    document.getElementById("hashOutput").textContent = "Click Generate Hash.";
-    document.getElementById("hashOutput").className = "hash-box";
-    badge("hashBadge", "READY", "idle");
-  }
- 
-  async function hashFile() {
-    const input = document.getElementById("pdfFile");
-    const box   = document.getElementById("hashOutput");
-    if (!input.files.length) { alert("Select a PDF first."); return; }
- 
-    box.textContent = "Hashing…";
-    box.className   = "hash-box";
- 
-    const buf    = await input.files[0].arrayBuffer();
-    const digest = await crypto.subtle.digest("SHA-256", buf);
-    pdfHash      = Array.from(new Uint8Array(digest))
-                        .map(b => b.toString(16).padStart(2,"0")).join("");
- 
-    box.textContent = pdfHash;
-    box.className   = "hash-box ready";
-    badge("hashBadge", "HASHED", "ok");
-    markStep("step2", true);
-  }
- 
-  // live-preview expiry timestamp as human date
-  document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("expiryInput").addEventListener("input", e => {
-      const ts = parseInt(e.target.value);
-      const el = document.getElementById("expiryHuman");
-      if (!isNaN(ts) && ts > 0) {
-        el.textContent = new Date(ts * 1000).toUTCString();
-      } else {
-        el.textContent = "";
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert("MetaMask not found. Install it from metamask.io");
+        return;
       }
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        walletAddr = await signer.getAddress();
+
+        const network = await provider.getNetwork();
+        if (network.chainId !== 11155111n) {
+          alert("Switch MetaMask to the Sepolia testnet.");
+          return;
+        }
+
+        if (contractAddress) {
+          contract = new ethers.Contract(contractAddress, ABI, signer);
+        }
+
+        const short = `${walletAddr.slice(0, 6)}...${walletAddr.slice(-4)}`;
+        document.getElementById("walletChip").textContent = `Connected: ${short}`;
+        document.getElementById("connectBtn").style.display = "none";
+        badge("walletBadge", "CONNECTED", "ok");
+        markStep("step1", true);
+      } catch (e) {
+        console.error(e);
+        alert("Wallet connection failed.");
+      }
+    }
+
+    function onFileChange() {
+      pdfHash = "";
+      document.getElementById("hashOutput").textContent = "Click Generate Hash.";
+      badge("hashBadge", "READY", "idle");
+    }
+
+    async function hashFile() {
+      const input = document.getElementById("pdfFile");
+      const box = document.getElementById("hashOutput");
+      if (!input.files.length) {
+        alert("Select a PDF first.");
+        return;
+      }
+
+      box.textContent = "Hashing...";
+
+      const buf = await input.files[0].arrayBuffer();
+      const digest = await crypto.subtle.digest("SHA-256", buf);
+      pdfHash = Array.from(new Uint8Array(digest))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+
+      box.textContent = pdfHash;
+      badge("hashBadge", "HASHED", "ok");
+      markStep("step2", true);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("expiryInput").addEventListener("input", (e) => {
+        const ts = parseInt(e.target.value);
+        const el = document.getElementById("expiryHuman");
+        if (!isNaN(ts) && ts > 0) {
+          el.textContent = new Date(ts * 1000).toUTCString();
+        } else {
+          el.textContent = "";
+        }
+      });
     });
-  });
- 
-  // ── Step 3: Grant consent ─────────────────────────────────
-  async function grantConsent() {
-    if (!signer)         return setStatus("Connect your wallet first.", "error");
-    if (!contractAddress) return setStatus("Set the contract address first.", "error");
-    if (!contract)       contract = new ethers.Contract(contractAddress, ABI, signer);
-    if (!pdfHash)        return setStatus("Generate the PDF hash first.", "error");
- 
-    const lender = document.getElementById("lenderAddress").value.trim();
-    const expiry = document.getElementById("expiryInput").value.trim();
- 
-    if (!ethers.isAddress(lender)) return setStatus("Invalid lender address.", "error");
-    if (!expiry || isNaN(parseInt(expiry))) return setStatus("Enter a valid Unix timestamp.", "error");
-    if (parseInt(expiry) <= Math.floor(Date.now() / 1000))
-      return setStatus("Expiry must be in the future.", "error");
- 
-    try {
-      setStatus("Awaiting MetaMask confirmation…", "loading");
-      const tx = await contract.grantConsent(lender, expiry, pdfHash);
-      setStatus("Transaction sent — waiting for confirmation…", "loading", tx.hash);
-      await tx.wait();
-      setStatus("Consent granted successfully.", "ok", tx.hash);
-      badge("consentBadge", "GRANTED", "ok");
-      markStep("step3", true);
-    } catch (e) {
-      console.error(e);
-      setStatus(e.reason || e.message || "Transaction failed.", "error");
+
+    async function grantConsent() {
+      if (!signer) return setStatus("Connect your wallet first.", "error");
+      if (!contractAddress) return setStatus("Set the contract address first.", "error");
+      if (!contract) contract = new ethers.Contract(contractAddress, ABI, signer);
+      if (!pdfHash) return setStatus("Generate the PDF hash first.", "error");
+
+      const lender = document.getElementById("lenderAddress").value.trim();
+      const expiry = document.getElementById("expiryInput").value.trim();
+
+      if (!ethers.isAddress(lender)) return setStatus("Invalid lender address.", "error");
+      if (!expiry || isNaN(parseInt(expiry))) return setStatus("Enter a valid Unix timestamp.", "error");
+      if (parseInt(expiry) <= Math.floor(Date.now() / 1000)) {
+        return setStatus("Expiry must be in the future.", "error");
+      }
+
+      try {
+        setStatus("Awaiting MetaMask confirmation...", "loading");
+        const tx = await contract.grantConsent(lender, expiry, pdfHash);
+        setStatus("Transaction sent - waiting for confirmation...", "loading", tx.hash);
+        await tx.wait();
+        setStatus("Consent granted successfully.", "ok", tx.hash);
+        badge("consentBadge", "GRANTED", "ok");
+        markStep("step3", true);
+      } catch (e) {
+        console.error(e);
+        setStatus(e.reason || e.message || "Transaction failed.", "error");
+      }
     }
-  }
- 
-  async function revokeConsent() {
-    if (!signer || !contract)
-      return setStatus("Connect wallet and set contract first.", "error");
-    try {
-      setStatus("Awaiting MetaMask confirmation…", "loading");
-      const tx = await contract.revokeConsent();
-      setStatus("Revocation sent — waiting for confirmation…", "loading", tx.hash);
-      await tx.wait();
-      setStatus("Consent revoked.", "ok", tx.hash);
-      badge("consentBadge", "REVOKED", "warn");
-    } catch (e) {
-      console.error(e);
-      setStatus(e.reason || e.message || "Revocation failed.", "error");
+
+    async function revokeConsent() {
+      if (!signer || !contract) {
+        return setStatus("Connect wallet and set contract first.", "error");
+      }
+      try {
+        setStatus("Awaiting MetaMask confirmation...", "loading");
+        const tx = await contract.revokeConsent();
+        setStatus("Revocation sent - waiting for confirmation...", "loading", tx.hash);
+        await tx.wait();
+        setStatus("Consent revoked.", "ok", tx.hash);
+        badge("consentBadge", "REVOKED", "warn");
+      } catch (e) {
+        console.error(e);
+        setStatus(e.reason || e.message || "Revocation failed.", "error");
+      }
     }
-  }
-</script>
+  </script>
 </body>
 </html>
