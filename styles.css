@@ -446,6 +446,15 @@ input[type="file"]::file-selector-button:hover {
   margin-top: 6px;
 }
 
+.dog-image {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  margin-top: 8px;
+  display: block;
+}
+
 .hidden {
   display: none;
 }

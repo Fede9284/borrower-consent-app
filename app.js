@@ -138,6 +138,7 @@ function setContractAddress() {
   document.getElementById("lenderConsentBool").className = "hash-box";
   document.getElementById("lenderConsentData").textContent = "Contract address updated. Re-run consent check.";
   document.getElementById("lenderConsentData").className = "hash-box";
+  hideDogImage();
 
   applyContractAddressToInstances();
 }
@@ -156,6 +157,38 @@ function initializeContractAddressInput() {
   }
 
   applyContractAddressToInstances();
+}
+
+function hideDogImage() {
+  const section = document.getElementById("dogImageSection");
+  const image = document.getElementById("dogImage");
+  const status = document.getElementById("dogImageStatus");
+
+  section.classList.add("hidden");
+  image.removeAttribute("src");
+  status.textContent = "";
+}
+
+async function loadDogImageForLender() {
+  const section = document.getElementById("dogImageSection");
+  const image = document.getElementById("dogImage");
+  const status = document.getElementById("dogImageStatus");
+
+  status.textContent = "Loading random dog image...";
+
+  const response = await fetch("https://dog.ceo/api/breeds/image/random");
+  if (!response.ok) {
+    throw new Error(`Dog API request failed: ${response.status}`);
+  }
+
+  const payload = await response.json();
+  if (!payload || payload.status !== "success" || !payload.message) {
+    throw new Error("Dog API returned an invalid response");
+  }
+
+  image.src = payload.message;
+  section.classList.remove("hidden");
+  status.textContent = "Image loaded from dog.ceo";
 }
 
 
@@ -365,6 +398,7 @@ async function checkLenderConsent() {
   if (!lenderSigner || !lenderWalletAddr) {
     boolOutput.textContent = "false";
     boolOutput.className = "hash-box";
+    hideDogImage();
     return setStatus(lenderStatus, "Connect lender wallet first.", "error");
   }
 
@@ -372,6 +406,7 @@ async function checkLenderConsent() {
   if (!ethers.isAddress(borrower)) {
     boolOutput.textContent = "false";
     boolOutput.className = "hash-box";
+    hideDogImage();
     return setStatus(lenderStatus, "Invalid borrower address.", "error");
   }
 
@@ -387,6 +422,7 @@ async function checkLenderConsent() {
       downloadBtn.classList.add("hidden");
       details.className = "hash-box";
       details.textContent = "Switch MetaMask to Sepolia before checking consent.";
+      hideDogImage();
       return setStatus(lenderStatus, "Wrong network. Use Sepolia.", "error");
     }
 
@@ -397,6 +433,7 @@ async function checkLenderConsent() {
       downloadBtn.classList.add("hidden");
       details.className = "hash-box";
       details.textContent = "No contract bytecode found at the fixed address on current network.";
+      hideDogImage();
       return setStatus(lenderStatus, "Contract not found at fixed address.", "error");
     }
 
@@ -410,6 +447,7 @@ async function checkLenderConsent() {
       details.textContent = "No active consent for this borrower-lender pair. Confirm the lender wallet matches the address used by the borrower during grant.";
       details.className = "hash-box";
       downloadBtn.classList.add("hidden");
+      hideDogImage();
       badge("lenderConsentBadge", "DENIED", "warn");
       markStep("lenderStep2", false);
       return setStatus(lenderStatus, "Consent is not active.", "error");
@@ -431,11 +469,20 @@ async function checkLenderConsent() {
     downloadBtn.classList.remove("hidden");
     badge("lenderConsentBadge", "VALID", "ok");
     markStep("lenderStep2", true);
+
+    try {
+      await loadDogImageForLender();
+    } catch (dogError) {
+      console.error(dogError);
+      hideDogImage();
+    }
+
     setStatus(lenderStatus, "Consent is valid. You can download proof.", "ok");
   } catch (e) {
     console.error(e);
     boolOutput.textContent = "false";
     boolOutput.className = "hash-box";
+    hideDogImage();
     if (e.code === "BAD_DATA") {
       details.className = "hash-box";
       details.textContent = "Call returned empty data. Run Network + Contract Check to verify chain and deployment.";
