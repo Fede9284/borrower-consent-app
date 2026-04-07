@@ -9,8 +9,6 @@ let lenderProofContext = null;
 
 const DEFAULT_CONTRACT_ADDRESS = "0xaa717FC983342Ea4bE59075C2E2b383AF6AF6De3";
 let contractAddress = DEFAULT_CONTRACT_ADDRESS;
-const DEFAULT_API_BASE_URL = "https://borrower-consent-app-api.onrender.com";
-let apiBaseUrl = localStorage.getItem("consentApiBaseUrl") || DEFAULT_API_BASE_URL;
 
 const ABI = [
   "function grantConsent(address _lender, uint256 _expiry, string memory _pdfHash)",
@@ -160,60 +158,6 @@ function initializeContractAddressInput() {
   applyContractAddressToInstances();
 }
 
-function normalizeApiBaseUrl(url) {
-  return url.trim().replace(/\/+$/, "");
-}
-
-function setApiBaseUrl() {
-  const input = document.getElementById("apiBaseUrlInput");
-  const note = document.getElementById("apiBaseUrlNote");
-  const value = normalizeApiBaseUrl(input.value);
-
-  if (!value || !/^https?:\/\//i.test(value)) {
-    note.textContent = "Invalid API URL. Use full http(s):// URL.";
-    return;
-  }
-
-  apiBaseUrl = value;
-  localStorage.setItem("consentApiBaseUrl", apiBaseUrl);
-  input.value = apiBaseUrl;
-  note.textContent = `API connected: ${apiBaseUrl}`;
-}
-
-function initializeApiBaseUrlInput() {
-  const input = document.getElementById("apiBaseUrlInput");
-  const note = document.getElementById("apiBaseUrlNote");
-  apiBaseUrl = normalizeApiBaseUrl(apiBaseUrl);
-  input.value = apiBaseUrl;
-  note.textContent = `Current API URL: ${apiBaseUrl}`;
-}
-
-async function checkApiConnection() {
-  const result = document.getElementById("apiCheckResult");
-  result.textContent = "Checking API connection...";
-  result.className = "hash-box";
-
-  try {
-    const response = await fetch(`${apiBaseUrl}/`, {
-      method: "GET",
-      headers: { Accept: "application/json" }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const payload = await response.json();
-    const statusText = payload?.status || "Unknown";
-    const messageText = payload?.message || "No message returned";
-
-    result.textContent = `Connected to API\nStatus: ${statusText}\nMessage: ${messageText}`;
-    result.className = "hash-box ready";
-  } catch (error) {
-    result.textContent = `API connection failed: ${error.message}`;
-    result.className = "hash-box";
-  }
-}
 
 async function runNetworkContractCheck() {
   const result = document.getElementById("contractCheckResult");
@@ -326,30 +270,6 @@ function onFileChange() {
   document.getElementById("hashOutput").textContent = "Click Generate Hash.";
   document.getElementById("hashOutput").className = "hash-box";
   badge("hashBadge", "READY", "idle");
-}
-
-async function evaluateConsentViaApi() {
-  if (!lenderProofContext) {
-    throw new Error("Lender proof context not ready");
-  }
-
-  const response = await fetch(`${apiBaseUrl}/evaluate-consent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      borrower: lenderProofContext.borrower,
-      lender: lenderProofContext.lender,
-      contract_address: lenderProofContext.contract
-    })
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(`API evaluate failed: ${response.status} ${message}`);
-  }
-
-  const payload = await response.json();
-  return Number(payload.result) === 1 ? 1 : 0;
 }
 
 async function hashFile() {
@@ -531,25 +451,13 @@ async function downloadLenderConsentProof() {
     return;
   }
 
-  let apiResultText = "API boolean result unavailable.";
-
-  try {
-    const apiResult = await evaluateConsentViaApi();
-    apiResultText = `API consent result: ${apiResult}`;
-  } catch (apiError) {
-    console.error(apiError);
-    apiResultText = `API evaluation error: ${apiError.message}`;
-  }
-
   const content = [
     "Behavioral Consent Proof",
     `Checked at: ${lenderProofContext.checkedAt}`,
     `Contract: ${lenderProofContext.contract}`,
     `Borrower: ${lenderProofContext.borrower}`,
     `Lender: ${lenderProofContext.lender}`,
-    `PDF hash: ${lenderProofContext.pdfHash}`,
-    "",
-    apiResultText
+    `PDF hash: ${lenderProofContext.pdfHash}`
   ].join("\n");
 
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -578,11 +486,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("lenderDownloadBtn").addEventListener("click", downloadLenderConsentProof);
   document.getElementById("contractCheckBtn").addEventListener("click", runNetworkContractCheck);
   document.getElementById("setContractBtn").addEventListener("click", setContractAddress);
-  document.getElementById("setApiBaseUrlBtn").addEventListener("click", setApiBaseUrl);
-  document.getElementById("checkApiBtn").addEventListener("click", checkApiConnection);
 
   initializeContractAddressInput();
-  initializeApiBaseUrlInput();
   setExpiryToFiveMinutesFromNow();
   setActiveTab("borrower");
 
