@@ -188,6 +188,33 @@ function initializeApiBaseUrlInput() {
   note.textContent = `Current API URL: ${apiBaseUrl}`;
 }
 
+async function checkApiConnection() {
+  const result = document.getElementById("apiCheckResult");
+  result.textContent = "Checking API connection...";
+  result.className = "hash-box";
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/`, {
+      method: "GET",
+      headers: { Accept: "application/json" }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const statusText = payload?.status || "Unknown";
+    const messageText = payload?.message || "No message returned";
+
+    result.textContent = `Connected to API\nStatus: ${statusText}\nMessage: ${messageText}`;
+    result.className = "hash-box ready";
+  } catch (error) {
+    result.textContent = `API connection failed: ${error.message}`;
+    result.className = "hash-box";
+  }
+}
+
 async function runNetworkContractCheck() {
   const result = document.getElementById("contractCheckResult");
 
@@ -552,6 +579,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("contractCheckBtn").addEventListener("click", runNetworkContractCheck);
   document.getElementById("setContractBtn").addEventListener("click", setContractAddress);
   document.getElementById("setApiBaseUrlBtn").addEventListener("click", setApiBaseUrl);
+  document.getElementById("checkApiBtn").addEventListener("click", checkApiConnection);
 
   initializeContractAddressInput();
   initializeApiBaseUrlInput();
